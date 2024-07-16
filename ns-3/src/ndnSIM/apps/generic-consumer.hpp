@@ -26,6 +26,18 @@ struct CapsuleInfoC {
 	uint32_t		nHops;
 };
 
+struct InterestBroadcastInfoC {
+	uint32_t 		hopCount;
+	string 			producerPrefix;
+	uint32_t 		consumerNodeID;
+	uint32_t		transHopNodeID;
+	uint32_t		nonce;
+	list<uint32_t> 	visitedNodeIDs;
+	list<double>	channelQualities;
+	bool			end;
+};
+
+
 struct DataElement {
 	CapsuleInfoC du;
 	ns3::Time arriveTime;
@@ -50,17 +62,23 @@ public:
 	int32_t getNRecvCapsules();
 	void onDataReseq(CapsuleInfoC du, shared_ptr<const Data> data);
 	void extractCapsuleInfo(const Data& data, CapsuleInfoC* info);
+	shared_ptr<Data> constructInterestBroadcast(InterestBroadcastInfoC* info);
 	void logMsgCapsule(ofstream* log, CapsuleInfoC& info);
+	void setToTerminateTransport(ns3::Time delayToTerminate);
+	void terminateTransport();
 
 protected:
 	virtual void ScheduleNextPacket();
 
 private:
 	virtual void StartApplication();
-	int32_t n_recvCapsules;
-	uint32_t nodeID;
-	RntpResequenceQueue* queue;
-	ns3::Time maxWaitTime;
+	int32_t 										n_recvCapsules;
+	uint32_t 										nodeID;
+	RntpResequenceQueue* 							queue;
+	ns3::Time 										maxWaitTime;
+	ns3::Time 										delayToTerminateTransport;
+	bool	  										needToTerminateTransport;
+	static ns3::Ptr<ns3::UniformRandomVariable> 	rand;
 };
 
 

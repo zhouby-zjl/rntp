@@ -49,6 +49,8 @@ double	 RntpConfig::INTEREST_CONTENTION_TIME_IN_SECS = 0.005;
 double   RntpConfig::CONSUMER_MAX_WAIT_TIME_IN_SECS = 5.0;
 double	 RntpConfig::QUALITY_ALPHA = 1.0 / 8.0;
 uint32_t RntpConfig::PRODUCER_FREQ = 10;
+bool	 RntpConfig::CONSUMER_NEED_TO_TERMINATE_TRANSPORT = false;
+double	 RntpConfig::CONSUMER_TERMINATE_TRANSPORT_DELAY_IN_SECS = 100;
 double   RntpConfig::ENEGERY_BATTERY_CAPACITY_IN_MAH = 3000;
 double   RntpConfig::ENEGERY_BATTERY_VOLTAGE_IN_V = 1.5;
 bool	 RntpConfig::TRACE_BATTERY = false;
@@ -222,6 +224,10 @@ bool RntpConfig::loadConfigFile(string filePath) {
 				ENEGERY_BATTERY_VOLTAGE_IN_V = atof(value.c_str());
 			} else if (name.compare("TRACE_BATTERY") == 0) {
 				TRACE_BATTERY = (value.compare("true") == 0);
+			} else if (name.compare("CONSUMER_NEED_TO_TERMINATE_TRANSPORT") == 0) {
+				CONSUMER_NEED_TO_TERMINATE_TRANSPORT = (value.compare("true") == 0);
+			} else if (name.compare("CONSUMER_TERMINATE_TRANSPORT_DELAY_IN_SECS") == 0) {
+				CONSUMER_TERMINATE_TRANSPORT_DELAY_IN_SECS = atof(value.c_str());
 			}
 		}
 	}

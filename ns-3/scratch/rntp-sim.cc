@@ -446,6 +446,10 @@ main(int argc, char* argv[])
 	app_consumer->SetStartTime(Seconds(0.0));
 	app_consumer->SetStopTime(Seconds(SIM_TIME_SECS));
 
+	if (RntpConfig::CONSUMER_NEED_TO_TERMINATE_TRANSPORT) {
+		app_consumer->setToTerminateTransport(ns3::Seconds(RntpConfig::CONSUMER_TERMINATE_TRANSPORT_DELAY_IN_SECS));
+	}
+
 	Ptr<Node> sensorNode = nodes.Get(sensorNodeIdx);
 	AppHelper sensorAppHelper("generic::GenericSensorApp");
 	ApplicationContainer sensorAC = sensorAppHelper.Install(sensorNode);

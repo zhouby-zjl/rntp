@@ -82,6 +82,7 @@ struct InterestBroadcastInfo {
 	uint32_t		nonce;
 	list<uint32_t> 	visitedNodeIDs;
 	list<double>	channelQualities;
+	bool			end;
 };
 
 struct EchoInfo {
@@ -246,8 +247,8 @@ public:
     void onReceiveEcho(const FaceEndpoint& ingress, const Data& data);
 
     void propagateInterests(InterestBroadcastStates* rreqStates, string producerPrefix,
-    										list<uint32_t>& visitedNodeIDs, list<double>& channelQualities,
-    										uint32_t consumerNodeID, uint32_t initialHopCount) ;
+    						list<uint32_t>& visitedNodeIDs, list<double>& channelQualities,
+    						uint32_t consumerNodeID, uint32_t initialHopCount, bool end);
 
     void propagateInterestsAsync(InterestBroadcastInfo* info, shared_ptr<Data> data, uint32_t times);
 

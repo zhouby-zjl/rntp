@@ -7,16 +7,21 @@
 #include "ns3/string.h"
 #include "ns3/uinteger.h"
 #include "ns3/double.h"
+#include "ns3/ndnSIM/helper/ndn-stack-helper.hpp"
 #include "ns3/ndnSIM/model/rntp-utils.hpp"
 
 #include "utils/batches.hpp"
 
 NS_LOG_COMPONENT_DEFINE("ndn.GenericConsumer");
 
+using namespace ns3::ndn;
+
 namespace ns3 {
 namespace ndn {
 
 NS_OBJECT_ENSURE_REGISTERED(GenericConsumer);
+
+Ptr<ns3::UniformRandomVariable> GenericConsumer::rand = NULL;
 
 TypeId
 GenericConsumer::GetTypeId(void)
@@ -35,10 +40,16 @@ GenericConsumer::GenericConsumer()
 	m_interestLifeTime = Seconds(10);
 	n_recvCapsules = 0;
 	queue = NULL;
+	needToTerminateTransport = false;
 }
 
 void GenericConsumer::setNodeID(uint32_t nodeID) {
 	this->nodeID = nodeID;
+}
+
+void GenericConsumer::setToTerminateTransport(ns3::Time delayToTerminate) {
+	this->delayToTerminateTransport = delayToTerminate;
+	this->needToTerminateTransport = true;
 }
 
 void
@@ -62,6 +73,33 @@ GenericConsumer::StartApplication()
 
 	ofstream* log = RntpUtils::getLogConsumer();
 	*log << this->nodeID << "," << Simulator::Now() << ",s,Interest," << m_interestName << endl;
+
+	if (this->needToTerminateTransport) {
+		Simulator::Schedule(delayToTerminateTransport, &GenericConsumer::terminateTransport, this);
+	}
+}
+
+void GenericConsumer::terminateTransport() {
+	if (GenericConsumer::rand == NULL) {
+		GenericConsumer::rand = ns3::CreateObject<ns3::UniformRandomVariable>();
+		GenericConsumer::rand->SetAttribute ("Min", ns3::DoubleValue (1.0));
+		GenericConsumer::rand->SetAttribute ("Max", ns3::DoubleValue ((double) UINT_MAX));
+	}
+
+	InterestBroadcastInfoC info;
+	info.producerPrefix = m_interestName.toUri(name::UriFormat::DEFAULT);
+	info.consumerNodeID = this->nodeID;
+	info.nonce = rand->GetInteger();
+	info.transHopNodeID = this->nodeID;
+	info.end = true;
+	info.hopCount = 0;
+
+	shared_ptr<Data> data = this->constructInterestBroadcast(&info);
+	m_transmittedDatas(data, this, m_face);
+	m_appLink->onReceiveData(*data);
+
+	cout << "GenericConsumerApp: send terminateTransport with prefix: " << info.producerPrefix
+			<< ", consumerNodeID: " << info.consumerNodeID << ", time: " << Simulator::Now() << endl;
 }
 
 void
@@ -114,6 +152,38 @@ void GenericConsumer::extractCapsuleInfo(const Data& data, CapsuleInfoC* info) {
 		info->transHopNodeID = 0xffffffff;
 		info->nHops = 0;
 	}
+}
+
+
+shared_ptr<Data> GenericConsumer::constructInterestBroadcast(InterestBroadcastInfoC* info) {
+	stringstream ss;
+	ss << info->producerPrefix << "/InterestBroadcast/" << info->hopCount <<
+			"/" << info->consumerNodeID <<
+			"/" << info->transHopNodeID <<
+			"/" << info->nonce << "/" << (info->end ? "true" : "false");
+
+	string name = ss.str();
+
+	size_t nNodeIdsBytes = sizeof(size_t);
+	size_t nchannelQualitiesBytes = sizeof(size_t);
+	size_t allBufBytes = nNodeIdsBytes + nchannelQualitiesBytes;
+	uint8_t* bufBytes = new uint8_t[allBufBytes];
+	size_t* nNodeIdRegion = (size_t*) bufBytes;
+	nNodeIdRegion[0] = 0;
+
+	size_t* nchannelQualities = (size_t*) (bufBytes + nNodeIdsBytes);
+	nchannelQualities[0] = 0;
+
+	auto data = std::make_shared<Data>(ss.str());
+	data->setFreshnessPeriod(time::milliseconds(1000));
+	shared_ptr<::ndn::Buffer> buf = std::make_shared<::ndn::Buffer>(allBufBytes);
+	data->setContent(buf);
+	for (size_t i = 0; i < allBufBytes; ++i) {
+		(*buf)[i] = bufBytes[i];
+	}
+	StackHelper::getKeyChain().sign(*data);
+
+	return data;
 }
 
 void GenericConsumer::logMsgCapsule(ofstream* log, CapsuleInfoC& info) {

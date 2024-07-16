@@ -58,8 +58,10 @@ void RntpStrategy::logMsgInterestBroadcast(bool isRecv, InterestBroadcastInfo& i
 	*log << this->nodeInfo->nodeID << "," << Simulator::Now() << "," << (phyInfo != NULL ? phyInfo->snr : -1) << ",";
 	if (isRecv) {
 		*log << "r,";
-	} else {
+	} else if (!info.end) {
 		*log << "s,";
+	} else {
+		*log << "t,";
 	}
 	*log << info.consumerNodeID << "," << info.transHopNodeID << "," << info.producerPrefix << "," <<
 			info.hopCount << "," <<	info.nonce << ",";

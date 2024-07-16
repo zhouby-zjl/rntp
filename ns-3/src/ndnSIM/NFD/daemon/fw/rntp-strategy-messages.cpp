@@ -126,7 +126,7 @@ shared_ptr<Data> RntpStrategy::constructInterestBroadcast(InterestBroadcastInfo*
 	ss << info->producerPrefix << "/InterestBroadcast/" << info->hopCount <<
 			"/" << info->consumerNodeID <<
 			"/" << info->transHopNodeID <<
-			"/" << info->nonce;
+			"/" << info->nonce << "/" << (info->end ? "true" : "false");
 
 	string name = ss.str();
 
@@ -232,8 +232,11 @@ void RntpStrategy::extractInterestBroadcastInfo(const Data& data, InterestBroadc
 	info->consumerNodeID = stoull(dataName.get(4).toUri(name::UriFormat::DEFAULT));
 	info->transHopNodeID = stoull(dataName.get(5).toUri(name::UriFormat::DEFAULT));
 	info->nonce = stoull(dataName.get(6).toUri(name::UriFormat::DEFAULT));
+	info->end = dataName.get(7).toUri(name::UriFormat::DEFAULT).compare("true") == 0;
 
 	info->visitedNodeIDs.clear();
+	info->channelQualities.clear();
+
 	const Block& payload = data.getContent();
 	const uint8_t* buf = payload.value();
 

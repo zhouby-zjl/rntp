@@ -150,7 +150,8 @@ void RntpStrategy::afterReceiveInterest(const FaceEndpoint& ingress, const Inter
 			visitedNodeIDs.push_back(this->nodeInfo->nodeID);
 			list<double> channelQualities;
 
-			propagateInterests(rreqStates, info.prefix, visitedNodeIDs, channelQualities, this->nodeInfo->nodeID, 0);
+			propagateInterests(rreqStates, info.prefix, visitedNodeIDs, channelQualities,
+								this->nodeInfo->nodeID, 0, false);
 		}
 	}
 
@@ -209,15 +210,41 @@ void RntpStrategy::onReceiveInterestBroadcast(const FaceEndpoint& ingress, const
 
 	this->logMsgInterestBroadcast(true, info, &phyInfo);
 
-	updateChannelQuality(info.transHopNodeID, phyInfo.snr);
+	double curQuality = phyInfo.snr;
 
+	updateChannelQuality(info.transHopNodeID, curQuality);
+
+	if (info.end == true) { // for terminating transport states
+		if (std::find(info.visitedNodeIDs.begin(), info.visitedNodeIDs.end(), this->nodeInfo->nodeID) != info.visitedNodeIDs.end()) {
+			return;
+		}
+
+		string h = this->hashPrefixAndConsumerID(info.producerPrefix, info.consumerNodeID);
+		auto iter = transportStates_all.find(h);
+		if (iter != transportStates_all.end()) {
+			transportStates_all.erase(h);
+
+			cout << "[Node " << this->nodeInfo->nodeID << ", " << Simulator::Now().GetMicroSeconds() << " us] terminate transport states with"
+					" producerPrefix: "  <<  info.producerPrefix <<
+					", consumerNodeID: " << info.consumerNodeID << endl;
+
+			if (info.visitedNodeIDs.size() > 0) {
+				info.channelQualities.push_back(curQuality);
+			}
+			info.visitedNodeIDs.push_back(this->nodeInfo->nodeID);
+
+			this->propagateInterests(NULL, info.producerPrefix, info.visitedNodeIDs, info.channelQualities,
+									info.consumerNodeID, 0, true);
+		}
+		return;
+	}
 
 	if (info.consumerNodeID == this->nodeInfo->nodeID) {
 		return;
 	}
 
 	uint32_t hopCount = info.hopCount + 1;
-	double curQuality = phyInfo.snr;
+
 
 	if (enableLog_msgs) {
 		cout << "[Node " << nodeInfo->nodeID << ", " << Simulator::Now().GetNanoSeconds() << " ns] receives an InterestBroadcast with"
@@ -232,7 +259,7 @@ void RntpStrategy::onReceiveInterestBroadcast(const FaceEndpoint& ingress, const
 		for (auto iter = info.visitedNodeIDs.begin(); iter != info.visitedNodeIDs.end(); ++iter) {
 			cout << *iter << " ";
 		}
-		cout << endl;
+		cout << ", end: " << info.end << endl;
 	}
 
 	int32_t prefixIdx = findPrefix(info.producerPrefix);
@@ -293,7 +320,7 @@ void RntpStrategy::onReceiveInterestBroadcast(const FaceEndpoint& ingress, const
 			transportStates_all[h] = tranStates;
 
 			this->propagateInterests(rreqStates, info.producerPrefix, info.visitedNodeIDs, info.channelQualities,
-									info.consumerNodeID, hopCount);
+									info.consumerNodeID, hopCount, false);
 		}
 
 	}
@@ -578,7 +605,7 @@ void RntpStrategy::onReceiveEcho(const FaceEndpoint& ingress, const Data& data) 
 
 void RntpStrategy::propagateInterests(InterestBroadcastStates* rreqStates, string producerPrefix,
 										list<uint32_t>& visitedNodeIDs, list<double>& channelQualities,
-										uint32_t consumerNodeID, uint32_t initialHopCount) {
+										uint32_t consumerNodeID, uint32_t initialHopCount, bool end) {
 	InterestBroadcastInfo* info = new InterestBroadcastInfo;
 	info->hopCount = initialHopCount;
 	info->producerPrefix = producerPrefix;
@@ -589,7 +616,10 @@ void RntpStrategy::propagateInterests(InterestBroadcastStates* rreqStates, strin
 	info->channelQualities = channelQualities;
 
 	info->nonce = this->rand->GetInteger();
-	rreqStates->nonce = info->nonce;
+	info->end = end;
+	if (rreqStates != NULL) {
+		rreqStates->nonce = info->nonce;
+	}
 	shared_ptr<Data> data = this->constructInterestBroadcast(info);
 
 	double waitTime = rand->GetValue(0, this->nodeInfo->interestContentionTimeInSecs);
@@ -602,11 +632,11 @@ void RntpStrategy::propagateInterestsAsync(InterestBroadcastInfo* info, shared_p
 
 	this->logMsgInterestBroadcast(false, *info, NULL);
 	if (enableLog_msgs) {
-	cout << "[Node " << this->nodeInfo->nodeID << ", " << Simulator::Now().GetMicroSeconds() << " us] sends a InterestBroadcast with"
-			" hopCount: "  << info->hopCount <<
-			", producerPrefix: "  <<  info->producerPrefix <<
-			", consumerNodeID: " << info->consumerNodeID <<
-			", transHopNodeID: " << info->transHopNodeID << ", nonce: " << info->nonce << endl;
+		cout << "[Node " << this->nodeInfo->nodeID << ", " << Simulator::Now().GetMicroSeconds() << " us] sends a InterestBroadcast with"
+				" hopCount: "  << info->hopCount <<
+				", producerPrefix: "  <<  info->producerPrefix <<
+				", consumerNodeID: " << info->consumerNodeID <<
+				", transHopNodeID: " << info->transHopNodeID << ", nonce: " << info->nonce << ", end: " << info->end << endl;
 	}
 	if (times >= 2) {
 		double waitTime = rand->GetValue(0, this->nodeInfo->interestContentionTimeInSecs);
