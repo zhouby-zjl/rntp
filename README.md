@@ -13,7 +13,7 @@ cd ns-3
 5. Afterwards, you can find the simulation results under the LOG_DIR directory defined in the above ini file.
 
  ## Paper in submission
-Boyang Zhou, et al., "A Resilient Subpath-Based NDN Transport Protocol (RNTP) for Ad-Hoc Stationary Wireless Sensor Networks," in IEEE Internet-of-Things Journal, 2024.
+Boyang Zhou, et al., "A Resilient Subpath-Based NDN Transport Protocol (RNTP) for Ad-Hoc Stationary Wireless Sensor Networks," in IEEE Internet of Things Journal, 2024.
  
 We are looking forward to new project opportunity in making the RNTP growing up. 
 
