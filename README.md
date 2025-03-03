@@ -11,9 +11,6 @@ In the Internet of Things, ad-hoc stationary wireless sensor networks (WSNs) oft
 cd ns-3
 ./waf --run scratch/rntp-sim --command-template="%s rntp-config.ini"
 5. Afterwards, you can find the simulation results under the LOG_DIR directory defined in the above ini file.
-
- ## Paper in submission
-Boyang Zhou, et al., "A Resilient Subpath-Based NDN Transport Protocol (RNTP) for Ad-Hoc Stationary Wireless Sensor Networks," in IEEE Internet of Things Journal, 2024.
  
 We are looking forward to new project opportunity in making the RNTP growing up. 
 
@@ -21,7 +18,7 @@ We are looking forward to new project opportunity in making the RNTP growing up.
 This work is licensed under CC BY-NC-SA 4.0
 (https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
-Copyright (c) 2021-2024 Boyang Zhou @ Zhejiang Lab
+Copyright (c) 2021-2025 Boyang Zhou @ Zhejiang Lab
 
 This file is a part of "Resilient Subpath-Based NDN Transport Protocol (RNTP) for Ad-Hoc Stationary Wireless Sensor Networks"
 (https://github.com/zhouby-zjl/rntp/).
